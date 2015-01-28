@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import argparse
 from flask import Flask, request
 import logging
 
@@ -29,9 +30,9 @@ def shutdown():
 
 # Server operations
 
-def start_server():
+def start_server(host, port):
     app.debug = True
-    app.run(host='0.0.0.0', port=80)
+    app.run(host=host, port=port)
 
 def shutdown_server():
     func = request.environ.get('werkzeug.server.shutdown')
@@ -40,4 +41,17 @@ def shutdown_server():
     func()
 
 if __name__ == "__main__":
-    start_server()
+
+    parser = argparse.ArgumentParser(description='Runs a server to perform light shows.',
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--host',
+                        type=str,
+                        default='0.0.0.0',
+                        help='host IP address')
+    parser.add_argument('-p', '--port',
+                        type=int,
+                        default=80,
+                        help='host port')
+
+    args = parser.parse_args()
+    start_server(host=args.host, port=args.port)
