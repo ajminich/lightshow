@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """
 Performs all high-level GPIO control.
+
+The color vectors would be easier to handle with numpy, but I'd rather steer
+clear of that on a less-powerful piece of hardware like the Raspberry Pi.
 """
 
 import argparse
@@ -16,6 +19,18 @@ BLUE_LED = 17
 GREEN_LED = 4
 RED_LED = 27
 
+MIN_DUTY_CYCLE = 0
+MAX_DUTY_CYCLE = 100
+
+# Color Vectors
+OFF_VECTOR          = (MIN_DUTY_CYCLE, MIN_DUTY_CYCLE, MIN_DUTY_CYCLE)
+BLUE_VECTOR         = (MIN_DUTY_CYCLE, MIN_DUTY_CYCLE, MAX_DUTY_CYCLE)
+GREEN_BLUE_VECTOR   = (MIN_DUTY_CYCLE, MAX_DUTY_CYCLE, MAX_DUTY_CYCLE)
+GREEN_VECTOR        = (MIN_DUTY_CYCLE, MAX_DUTY_CYCLE, MIN_DUTY_CYCLE)
+RED_GREEN_VECTOR    = (MAX_DUTY_CYCLE, MAX_DUTY_CYCLE, MIN_DUTY_CYCLE)
+RED_VECTOR          = (MAX_DUTY_CYCLE, MIN_DUTY_CYCLE, MIN_DUTY_CYCLE)
+RED_BLUE_VECTOR     = (MAX_DUTY_CYCLE, MIN_DUTY_CYCLE, MAX_DUTY_CYCLE)
+ON_VECTOR           = (MAX_DUTY_CYCLE, MAX_DUTY_CYCLE, MAX_DUTY_CYCLE)
 
 class GPIOController(object):
     """
@@ -34,15 +49,15 @@ class GPIOController(object):
         self.bluePWM = GPIO.PWM(BLUE_LED, 60)
 
         # Start all PWMs at 0% duty cycle.
-        self.redPWM.start(0.0)
-        self.greenPWM.start(0.0)
-        self.bluePWM.start(0.0)
+        self.redPWM.start(MIN_DUTY_CYCLE)
+        self.greenPWM.start(MIN_DUTY_CYCLE)
+        self.bluePWM.start(MIN_DUTY_CYCLE)
 
-        self.colorVector = (0.0, 0.0, 0.0)
+        self.colorVector = OFF_VECTOR
 
         # Use a resolution of 100 - this generally works well for periods of
         # 10 seconds or less.
-        self.resolution = 100
+        self.resolution = 1000
 
     def setColorVector(self, colorVector):
         """
@@ -53,14 +68,16 @@ class GPIOController(object):
             tuple of duty cycles (R, G, B)
         """
 
-        logging.debug("Moving to color vector (%f, %f, %f)", colorVector[0], colorVector[1], colorVector[2])
+        redVal = min(max(colorVector[0], MIN_DUTY_CYCLE), MAX_DUTY_CYCLE)
+        greenVal = min(max(colorVector[1], MIN_DUTY_CYCLE), MAX_DUTY_CYCLE)
+        blueVal = min(max(colorVector[2], MIN_DUTY_CYCLE), MAX_DUTY_CYCLE)
 
-        self.redPWM.ChangeDutyCycle(colorVector[0])
-        self.greenPWM.ChangeDutyCycle(colorVector[1])
-        self.bluePWM.ChangeDutyCycle(colorVector[2])
+        self.redPWM.ChangeDutyCycle(redVal)
+        self.greenPWM.ChangeDutyCycle(greenVal)
+        self.bluePWM.ChangeDutyCycle(blueVal)
 
         # Update the internal color vector.
-        self.colorVector = colorVector
+        self.colorVector = (redVal, greenVal, blueVal)
 
     def performCrossFade(self, period, targetVector):
         """
@@ -93,11 +110,18 @@ class GPIOController(object):
             timedelta
         """
 
-        for _ in xrange(numIterations):
-            self.performCrossFade(period=period / 2, targetVector=(0, 0, 100))
-            self.performCrossFade(period=period / 2, targetVector=(100, 100, 0))
+        effectivePeriod = period / 6
 
-        self.performCrossFade(period-period / 2, targetVector=(0, 0, 0))
+        for _ in xrange(numIterations):
+            # Fade: blue -> blue-green -> green -> green-red -> red -> red-blue
+            self.performCrossFade(period=effectivePeriod, targetVector=BLUE_VECTOR)
+            self.performCrossFade(period=effectivePeriod, targetVector=GREEN_BLUE_VECTOR)
+            self.performCrossFade(period=effectivePeriod, targetVector=GREEN_VECTOR)
+            self.performCrossFade(period=effectivePeriod, targetVector=RED_GREEN_VECTOR)
+            self.performCrossFade(period=effectivePeriod, targetVector=RED_VECTOR)
+            self.performCrossFade(period=effectivePeriod, targetVector=RED_BLUE_VECTOR)
+
+        self.performCrossFade(period-effectivePeriod, targetVector=OFF_VECTOR)
 
         GPIO.cleanup(BLUE_LED)
         GPIO.cleanup(GREEN_LED)
