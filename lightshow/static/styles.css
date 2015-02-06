@@ -1,0 +1,11 @@
+div {
+    background: #e7e7e7;
+    display: table;
+    max-width: 800px;
+    padding: 30px;
+    margin: 0 auto 40px;
+}
+
+input[type=submit] {
+    width: 30em;
+}

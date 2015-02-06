@@ -3,6 +3,13 @@ A simple Raspberry Pi project to control GPIOs over a REST API.
 
 ## Setup
 
+### Python Prerequisites
+Run::
+
+    pip install flask wtform
+
+The Raspberry Pi GPIO library (RPi) is only available on Raspberry Pi hardware.
+
 ### Serial Connection
 Follow http://elinux.org/RPi_Serial_Connection for directions on setting up a
 serial connection over USB.
@@ -22,3 +29,8 @@ To unmount simply:
 ```
 umount remote_home
 ```
+
+## Todo
+
+- use the colorpicker from http://www.w3schools.com/tags/ref_colorpicker.asp to
+  control LED colors

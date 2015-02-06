@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Lightshow!</title>
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='styles.css') }}">
+    {% from "_formhelpers.html" import render_field %}
+</head>
+
+<body>
+<div class=page>
+    <h1>Lightshow!</h1>
+    <hr/>
+    <form method=post action="/">
+      <h2>Colors</h2>
+      <p><center><input type=submit name="Turn White" value="Turn White"></center>
+      <p><center><input type=submit name="Turn Blue" value="Turn Blue"></center>
+      <p><center><input type=submit name="Turn Green" value="Turn Green"></center>
+      <p><center><input type=submit name="Turn Red" value="Turn Red"></center>
+      <p><center><input type=submit name="Turn Off" value="Turn Off"></center>
+      <h2>Crossfade</h2>
+      <table style="width:100%">
+        {{ render_field(form.iterations) }}
+        {{ render_field(form.period) }}
+      </table>
+      <p><center><input type=submit name="Crossfade" value="Crossfade"></center>
+    </form>
+</div>
+</body>
+
+</html>

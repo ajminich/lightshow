@@ -20,17 +20,22 @@ GREEN_LED = 4
 RED_LED = 27
 
 MIN_DUTY_CYCLE = 0
+ONE_THIRD_DUTY_CYCLE = 33
+HALF_DUTY_CYCLE = 50
+TWO_THIRDS_DUTY_CYCLE = 66
 MAX_DUTY_CYCLE = 100
 
 # Color Vectors
 OFF_VECTOR          = (MIN_DUTY_CYCLE, MIN_DUTY_CYCLE, MIN_DUTY_CYCLE)
 BLUE_VECTOR         = (MIN_DUTY_CYCLE, MIN_DUTY_CYCLE, MAX_DUTY_CYCLE)
-GREEN_BLUE_VECTOR   = (MIN_DUTY_CYCLE, MAX_DUTY_CYCLE, MAX_DUTY_CYCLE)
+GREEN_BLUE_VECTOR   = (MIN_DUTY_CYCLE, HALF_DUTY_CYCLE, HALF_DUTY_CYCLE)
 GREEN_VECTOR        = (MIN_DUTY_CYCLE, MAX_DUTY_CYCLE, MIN_DUTY_CYCLE)
-RED_GREEN_VECTOR    = (MAX_DUTY_CYCLE, MAX_DUTY_CYCLE, MIN_DUTY_CYCLE)
+RED_GREEN_VECTOR    = (HALF_DUTY_CYCLE, HALF_DUTY_CYCLE, MIN_DUTY_CYCLE)
 RED_VECTOR          = (MAX_DUTY_CYCLE, MIN_DUTY_CYCLE, MIN_DUTY_CYCLE)
-RED_BLUE_VECTOR     = (MAX_DUTY_CYCLE, MIN_DUTY_CYCLE, MAX_DUTY_CYCLE)
-ON_VECTOR           = (MAX_DUTY_CYCLE, MAX_DUTY_CYCLE, MAX_DUTY_CYCLE)
+RED_BLUE_VECTOR     = (HALF_DUTY_CYCLE, MIN_DUTY_CYCLE, HALF_DUTY_CYCLE)
+ON_VECTOR           = (ONE_THIRD_DUTY_CYCLE, ONE_THIRD_DUTY_CYCLE, ONE_THIRD_DUTY_CYCLE)
+
+DEFAULT_PERIOD=timedelta(seconds=1)
 
 class GPIOController(object):
     """
@@ -58,6 +63,11 @@ class GPIOController(object):
         # Use a resolution of 100 - this generally works well for periods of
         # 10 seconds or less.
         self.resolution = 1000
+
+    def __del__(self):
+        GPIO.cleanup(BLUE_LED)
+        GPIO.cleanup(GREEN_LED)
+        GPIO.cleanup(RED_LED)
 
     def setColorVector(self, colorVector):
         """
@@ -100,9 +110,7 @@ class GPIOController(object):
             self.setColorVector(newVector)
             time.sleep(float(period.total_seconds()) / self.resolution)
 
-    def runCrossFade(self,
-                     numIterations=1,
-                     period=timedelta(seconds=2)):
+    def runCrossFade(self, numIterations=1, period=DEFAULT_PERIOD):
         """
         Runs a set of crossfades.
 
@@ -122,10 +130,6 @@ class GPIOController(object):
             self.performCrossFade(period=effectivePeriod, targetVector=RED_BLUE_VECTOR)
 
         self.performCrossFade(period-effectivePeriod, targetVector=OFF_VECTOR)
-
-        GPIO.cleanup(BLUE_LED)
-        GPIO.cleanup(GREEN_LED)
-        GPIO.cleanup(RED_LED)
 
 
 if __name__ == "__main__":

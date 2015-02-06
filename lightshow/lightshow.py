@@ -1,44 +1,58 @@
 #!/usr/bin/env python
 
 import argparse
-from flask import Flask, request
+from datetime import timedelta
+from flask import Flask, request, render_template
 import logging
 
 # Local imports
-from gpio_controller import GPIOController
+import gpio_controller
 
 # Resource setup
 FORMAT = "%(asctime)-15s %(filename)s:%(lineno)s [%(levelname)s] %(message)s"
 logging.basicConfig(format=FORMAT, level=logging.INFO)
 
 app = Flask("Lightshow")
-gpioController = GPIOController()
+
+gpioController = gpio_controller.GPIOController()
+
+# Form
+
+from wtforms import Form, IntegerField, FloatField, validators
+
+class LightshowForm(Form):
+    iterations = IntegerField('Iterations', [validators.Required()], default=1)
+    period = FloatField('Period (seconds)', [validators.Required()], default=5.0)
 
 # Routing
 
-@app.route('/lightshow/<int:iterations>')
-def lightshow(iterations):
-    logging.info("received request to perform %d lightshow iterations", iterations)
-    gpioController.runCrossFade(iterations)
-    return "Watch the show!"
+@app.route('/', methods=['GET', 'POST'])
+def lightshow():
+    form = LightshowForm(request.form)
 
-@app.route('/shutdown')
-def shutdown():
-    logging.info("received request to shut server down")
-    shutdown_server()
-    return 'Server shutting down...'
+    if request.method == 'POST' and form.validate():
+        # Determine which button was pressed
+        if "Crossfade" in request.form:
+            gpioController.runCrossFade(numIterations=form.iterations.data,
+                                        period=timedelta(seconds=form.period.data))
+        elif "Turn White" in request.form:
+            gpioController.performCrossFade(gpio_controller.DEFAULT_PERIOD, gpio_controller.ON_VECTOR)
+        elif "Turn Blue" in request.form:
+            gpioController.performCrossFade(gpio_controller.DEFAULT_PERIOD, gpio_controller.BLUE_VECTOR)
+        elif "Turn Green" in request.form:
+            gpioController.performCrossFade(gpio_controller.DEFAULT_PERIOD, gpio_controller.GREEN_VECTOR)
+        elif "Turn Red" in request.form:
+            gpioController.performCrossFade(gpio_controller.DEFAULT_PERIOD, gpio_controller.RED_VECTOR)
+        elif "Turn Off" in request.form:
+            gpioController.performCrossFade(gpio_controller.DEFAULT_PERIOD, gpio_controller.OFF_VECTOR)
+
+    return render_template('lightshow.html', form=form)
 
 # Server operations
 
 def start_server(host, port):
     app.debug = True
     app.run(host=host, port=port)
-
-def shutdown_server():
-    func = request.environ.get('werkzeug.server.shutdown')
-    if func is None:
-        raise RuntimeError('Not running with the Werkzeug Server')
-    func()
 
 if __name__ == "__main__":
 
